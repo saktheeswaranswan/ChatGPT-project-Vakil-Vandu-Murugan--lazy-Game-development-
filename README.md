@@ -1,1 +1,1 @@
-# lazy prompting project vandumurugan
+# lazy buddy prompting project vandumurugan
