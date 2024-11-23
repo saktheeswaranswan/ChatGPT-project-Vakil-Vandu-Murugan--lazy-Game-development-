@@ -1,0 +1,187 @@
+// Grid and candy variables
+let grid;
+let cols = 8; // Number of columns
+let rows = 8; // Number of rows
+let tileSize = 60; // Size of each tile
+let candyColors = []; // Colors for different candies
+let sparkleParticles = [];
+let sparkleFrames = 10; // Sparkle animation frames
+
+function setup() {
+  createCanvas(cols * tileSize, rows * tileSize);
+
+  // Generate random candy colors
+  for (let i = 0; i < 5; i++) {
+    candyColors.push(color(random(50, 255), random(50, 255), random(50, 255)));
+  }
+
+  // Initialize the grid
+  grid = createGrid(cols, rows);
+}
+
+function draw() {
+  background(30);
+
+  // Draw the grid
+  drawGrid();
+
+  // Handle sparkles
+  for (let i = sparkleParticles.length - 1; i >= 0; i--) {
+    let sparkle = sparkleParticles[i];
+    sparkle.display();
+    sparkle.update();
+
+    // Remove particle when it's finished
+    if (sparkle.finished) {
+      sparkleParticles.splice(i, 1);
+    }
+  }
+}
+
+// Create a grid of random candies
+function createGrid(cols, rows) {
+  let grid = [];
+  for (let y = 0; y < rows; y++) {
+    let row = [];
+    for (let x = 0; x < cols; x++) {
+      row.push(floor(random(candyColors.length))); // Random candy type
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+// Draw the grid
+function drawGrid() {
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      let candyType = grid[y][x];
+      if (candyType !== null) {
+        drawCandy(x * tileSize, y * tileSize, candyType);
+      }
+    }
+  }
+}
+
+// Draw a single candy at the specified position
+function drawCandy(x, y, type) {
+  noStroke();
+  fill(candyColors[type]);
+  rect(x + 10, y + 10, tileSize - 20, tileSize - 20, 10); // Rounded rectangles for candies
+}
+
+// Check for matches
+function checkMatches() {
+  let matches = [];
+
+  // Check rows for matches
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols - 2; x++) {
+      if (
+        grid[y][x] !== null &&
+        grid[y][x] === grid[y][x + 1] &&
+        grid[y][x] === grid[y][x + 2]
+      ) {
+        matches.push({ x, y });
+        matches.push({ x: x + 1, y });
+        matches.push({ x: x + 2, y });
+      }
+    }
+  }
+
+  // Check columns for matches
+  for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < rows - 2; y++) {
+      if (
+        grid[y][x] !== null &&
+        grid[y][x] === grid[y + 1][x] &&
+        grid[y][x] === grid[y + 2][x]
+      ) {
+        matches.push({ x, y });
+        matches.push({ x, y: y + 1 });
+        matches.push({ x, y: y + 2 });
+      }
+    }
+  }
+
+  return matches;
+}
+
+// Create sparkle animation
+class Sparkle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.life = sparkleFrames;
+    this.finished = false;
+  }
+
+  update() {
+    this.life--;
+    if (this.life <= 0) {
+      this.finished = true;
+    }
+  }
+
+  display() {
+    noStroke();
+    fill(255, random(150, 255), random(150, 255), this.life * 25);
+    ellipse(
+      this.x + random(-10, 10),
+      this.y + random(-10, 10),
+      random(5, 10)
+    );
+  }
+}
+
+// Trigger sparkle animation
+function triggerSparkle(matches) {
+  matches.forEach(({ x, y }) => {
+    for (let i = 0; i < 20; i++) {
+      sparkleParticles.push(
+        new Sparkle(x * tileSize + tileSize / 2, y * tileSize + tileSize / 2)
+      );
+    }
+  });
+}
+
+// Handle mouse click
+function mousePressed() {
+  // Detect matches
+  let matches = checkMatches();
+  if (matches.length > 0) {
+    // Trigger sparkle animation
+    triggerSparkle(matches);
+
+    // Remove matched candies
+    matches.forEach(({ x, y }) => {
+      grid[y][x] = null;
+    });
+
+    // Collapse grid
+    collapseGrid();
+  }
+}
+
+// Collapse the grid after matches
+function collapseGrid() {
+  for (let x = 0; x < cols; x++) {
+    for (let y = rows - 1; y >= 0; y--) {
+      if (grid[y][x] === null) {
+        // Find the next non-null candy above
+        for (let k = y - 1; k >= 0; k--) {
+          if (grid[k][x] !== null) {
+            grid[y][x] = grid[k][x];
+            grid[k][x] = null;
+            break;
+          }
+        }
+
+        // If no candy found above, generate a new candy
+        if (grid[y][x] === null) {
+          grid[y][x] = floor(random(candyColors.length));
+        }
+      }
+    }
+  }
+}
